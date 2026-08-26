@@ -1,6 +1,6 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
-import { CreatePaymentDto } from './dtos/create-payment.dto';
+import { CreatePaymentDto } from '../src/infra/http/dtos/create-payment.dto';
 
 @Injectable()
 export class PaymentsService implements OnModuleInit {

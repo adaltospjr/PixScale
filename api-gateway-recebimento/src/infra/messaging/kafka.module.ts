@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { KafkaMessageBrokerAdapter } from './kafka-message-broker.adapter';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
       },
     ]),
   ],
-  // O pulo do gato: exportamos o KAFKA_SERVICE para outros módulos conseguirem enxergar
-  exports: [ClientsModule], 
+  providers: [KafkaMessageBrokerAdapter],
+  exports: [ClientsModule, KafkaMessageBrokerAdapter], 
 })
 export class KafkaModule {}

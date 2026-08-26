@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { PaymentsController } from 'payments/payments.controller';
-import { KafkaModule } from 'infra/messaging/kafka.module';
-import { PaymentsService } from 'payments/payments.service';
+import { PaymentsController } from './infra/http/controllers/payments.controller';
+import { KafkaModule } from './infra/messaging/kafka.module';
 
 @Module({
   imports: [
@@ -13,6 +12,6 @@ import { PaymentsService } from 'payments/payments.service';
     KafkaModule,
   ],
   controllers: [PaymentsController],
-  providers: [PaymentsService],
+  providers: [],
 })
 export class AppModule {}
