@@ -7,7 +7,6 @@ export class CreatePaymentDto {
 
   @IsString({ message: 'O número da conta de destino deve ser um texto.' })
   @IsNotEmpty({ message: 'O número da conta de destino é obrigatório.' })
-  // Valida o formato da conta com hífen (ex: 123456-7)
   @Matches(/^\d+-\d$/, { message: 'O formato da conta deve ser numérico com dígito (ex: 123456-7).' })
   destination_account_number!: string;
 

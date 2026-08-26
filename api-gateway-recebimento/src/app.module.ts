@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { PaymentsController } from 'payments/payments.controller';
+import { PaymentsController } from './infra/http/controllers/payments.controller';
+import { KafkaModule } from './infra/messaging/kafka.module';
 
 @Module({
   imports: [
@@ -8,6 +9,7 @@ import { PaymentsController } from 'payments/payments.controller';
       isGlobal: true,
       envFilePath: '../.env',
     }),
+    KafkaModule,
   ],
   controllers: [PaymentsController],
   providers: [],
