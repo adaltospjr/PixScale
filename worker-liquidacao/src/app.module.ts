@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { PaymentEventsController } from './infra/messaging/controllers/payment-events.controller';
 
 @Module({
   imports: [
@@ -8,7 +9,7 @@ import { ConfigModule } from '@nestjs/config';
       envFilePath: '../.env',
     }),
   ],
-  controllers: [],
+  controllers: [PaymentEventsController],
   providers: [],
 })
 export class AppModule {}
