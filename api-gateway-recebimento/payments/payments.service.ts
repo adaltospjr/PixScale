@@ -21,7 +21,7 @@ export class PaymentsService implements OnModuleInit {
 
         this.kafkaClient.emit('pix-transactions', {
             key: createPaymentDto.idempotency_key,
-            value: createPaymentDto,
+            value: JSON.stringify(createPaymentDto),
         });
 
         return {
