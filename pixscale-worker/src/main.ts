@@ -9,7 +9,7 @@ async function bootstrap() {
     transport: Transport.KAFKA,
     options: {
       client: {
-        clientId: 'worker-liquidacao-consumer',
+        clientId: 'pixscale-worker-consumer',
         brokers: [`localhost:${kafkaPort}`],
       },
       consumer: {

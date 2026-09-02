@@ -15,7 +15,7 @@ import { KafkaMessageBrokerAdapter } from './kafka-message-broker.adapter';
             transport: Transport.KAFKA,
             options: {
               client: {
-                clientId: 'api-gateway-recebimento',
+                clientId: 'pixscale-gateway',
                 brokers: [`localhost:${kafkaPort}`],
               },
               consumer: {
