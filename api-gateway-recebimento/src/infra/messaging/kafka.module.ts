@@ -21,6 +21,7 @@ import { KafkaMessageBrokerAdapter } from './kafka-message-broker.adapter';
               consumer: {
                 groupId: 'pix-gateway-consumer',
               },
+              producerOnlyMode: true, 
             },
           };
         },
