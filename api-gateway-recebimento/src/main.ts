@@ -13,10 +13,10 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  
+
   const configService = app.get(ConfigService);
   const port = configService.get<number>('API_GATEWAY_PORT') || 3000;
-  
+
   await app.listen(port);
   console.log(`[PixScale] API Gateway rodando com sucesso na porta: ${port}`);
 }
