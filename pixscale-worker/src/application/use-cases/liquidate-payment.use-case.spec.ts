@@ -3,6 +3,7 @@ import { LiquidatePaymentUseCase } from './liquidate-payment.use-case';
 describe('LiquidatePaymentUseCase', () => {
   it('liquidates the payment using the origin fallback', async () => {
     const repository = {
+      findAccountByNumber: jest.fn(),
       executeLiquidation: jest.fn().mockResolvedValue(true),
     };
     const logSpy = jest.spyOn(console, 'log').mockImplementation();
