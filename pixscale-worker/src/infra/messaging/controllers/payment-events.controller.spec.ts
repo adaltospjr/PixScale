@@ -13,7 +13,9 @@ describe('PaymentEventsController', () => {
   beforeEach(() => {
     execute = jest.fn().mockResolvedValue(undefined);
     repository = { executeLiquidation: jest.fn() };
-    LiquidatePaymentUseCaseMock.mockImplementation(() => ({ execute }) as LiquidatePaymentUseCase);
+    LiquidatePaymentUseCaseMock.mockImplementation(
+      () => ({ execute }) as unknown as LiquidatePaymentUseCase,
+    );
     controller = new PaymentEventsController(repository as any);
   });
 
@@ -21,10 +23,10 @@ describe('PaymentEventsController', () => {
     jest.clearAllMocks();
   });
 
-  it('ignores messages without a value', async () => {
+  it('forwards null payloads to the use case', async () => {
     await controller.handlePixTransaction(null, {} as any);
 
-    expect(execute).not.toHaveBeenCalled();
+    expect(execute).toHaveBeenCalledWith(null);
   });
 
   it('parses Buffer message values', async () => {
