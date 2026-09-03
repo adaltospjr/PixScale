@@ -2,6 +2,7 @@ import { Controller, Inject } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, KafkaContext } from '@nestjs/microservices';
 import { LiquidatePaymentUseCase } from '../../../application/use-cases/liquidate-payment.use-case';
 import type { AccountRepository } from '../../../domain/repository/account-repository.interface';
+import type { CacheService } from '../../../domain/cache/cache-service.interface';
 
 @Controller()
 export class PaymentEventsController {
@@ -11,9 +12,14 @@ export class PaymentEventsController {
     // Injeta o repositório físico do Postgres usando o Token do Clean Arch
     @Inject('ACCOUNT_REPOSITORY')
     private readonly accountRepository: AccountRepository,
+    @Inject('CACHE_SERVICE')
+    private readonly cacheService: CacheService,
   ) {
     // Instancia o caso de uso passando o repositório injetado pelo NestJS
-    this.liquidatePaymentUseCase = new LiquidatePaymentUseCase(this.accountRepository);
+    this.liquidatePaymentUseCase = new LiquidatePaymentUseCase(
+      this.accountRepository,
+      this.cacheService,
+    );
   }
 
   @EventPattern('pix-transactions')
