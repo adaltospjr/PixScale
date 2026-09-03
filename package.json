@@ -1,0 +1,8 @@
+{
+  "name": "pixscale",
+  "private": true,
+  "scripts": {
+    "test:unit": "npm --prefix pixscale-gateway test -- --runInBand && npm --prefix pixscale-worker test -- --runInBand",
+    "test:coverage": "npm --prefix pixscale-gateway run test:cov -- --runInBand && npm --prefix pixscale-worker run test:cov -- --runInBand"
+  }
+}
