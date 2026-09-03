@@ -7,12 +7,14 @@ const LiquidatePaymentUseCaseMock = LiquidatePaymentUseCase as jest.MockedClass<
 
 describe('PaymentEventsController', () => {
   let execute: jest.Mock;
+  let repository: { executeLiquidation: jest.Mock };
   let controller: PaymentEventsController;
 
   beforeEach(() => {
     execute = jest.fn().mockResolvedValue(undefined);
+    repository = { executeLiquidation: jest.fn() };
     LiquidatePaymentUseCaseMock.mockImplementation(() => ({ execute }) as LiquidatePaymentUseCase);
-    controller = new PaymentEventsController();
+    controller = new PaymentEventsController(repository as any);
   });
 
   afterEach(() => {
@@ -20,7 +22,7 @@ describe('PaymentEventsController', () => {
   });
 
   it('ignores messages without a value', async () => {
-    await controller.handlePixTransaction({}, { getMessage: () => ({ value: null }) } as any);
+    await controller.handlePixTransaction(null, {} as any);
 
     expect(execute).not.toHaveBeenCalled();
   });
@@ -28,9 +30,7 @@ describe('PaymentEventsController', () => {
   it('parses Buffer message values', async () => {
     const payment = { amount: 10 };
 
-    await controller.handlePixTransaction({}, {
-      getMessage: () => ({ value: Buffer.from(JSON.stringify(payment)) }),
-    } as any);
+    await controller.handlePixTransaction(Buffer.from(JSON.stringify(payment)), {} as any);
 
     expect(execute).toHaveBeenCalledWith(payment);
   });
@@ -38,9 +38,7 @@ describe('PaymentEventsController', () => {
   it('parses string message values', async () => {
     const payment = { amount: 20 };
 
-    await controller.handlePixTransaction({}, {
-      getMessage: () => ({ value: JSON.stringify(payment) }),
-    } as any);
+    await controller.handlePixTransaction(JSON.stringify(payment), {} as any);
 
     expect(execute).toHaveBeenCalledWith(payment);
   });
@@ -48,16 +46,12 @@ describe('PaymentEventsController', () => {
   it('passes object message values unchanged', async () => {
     const payment = { amount: 30 };
 
-    await controller.handlePixTransaction({}, {
-      getMessage: () => ({ value: payment }),
-    } as any);
+    await controller.handlePixTransaction(payment, {} as any);
 
     expect(execute).toHaveBeenCalledWith(payment);
   });
 
   it('propagates invalid JSON errors', async () => {
-    await expect(controller.handlePixTransaction({}, {
-      getMessage: () => ({ value: '{invalid-json' }),
-    } as any)).rejects.toThrow(SyntaxError);
+    await expect(controller.handlePixTransaction('{invalid-json', {} as any)).rejects.toThrow(SyntaxError);
   });
 });
