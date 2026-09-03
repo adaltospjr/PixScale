@@ -8,15 +8,17 @@ const LiquidatePaymentUseCaseMock = LiquidatePaymentUseCase as jest.MockedClass<
 describe('PaymentEventsController', () => {
   let execute: jest.Mock;
   let repository: { executeLiquidation: jest.Mock };
+  let cache: { get: jest.Mock; set: jest.Mock };
   let controller: PaymentEventsController;
 
   beforeEach(() => {
     execute = jest.fn().mockResolvedValue(undefined);
     repository = { executeLiquidation: jest.fn() };
+    cache = { get: jest.fn(), set: jest.fn() };
     LiquidatePaymentUseCaseMock.mockImplementation(
       () => ({ execute }) as unknown as LiquidatePaymentUseCase,
     );
-    controller = new PaymentEventsController(repository as any);
+    controller = new PaymentEventsController(repository as any, cache as any);
   });
 
   afterEach(() => {
