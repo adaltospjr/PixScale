@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PaymentEventsController } from './infra/messaging/controllers/payment-events.controller';
+import { DatabaseModule } from './infra/database/database.module'; // 🌟 Importe o novo módulo de banco
 
 @Module({
   imports: [
@@ -8,6 +9,7 @@ import { PaymentEventsController } from './infra/messaging/controllers/payment-e
       isGlobal: true,
       envFilePath: '../.env',
     }),
+    DatabaseModule,
   ],
   controllers: [PaymentEventsController],
   providers: [],
