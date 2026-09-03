@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PaymentEventsController } from './infra/messaging/controllers/payment-events.controller';
 import { DatabaseModule } from './infra/database/database.module'; // 🌟 Importe o novo módulo de banco
+import { CacheModule } from './infra/cache/cache.module';
+CacheModule
 
 @Module({
   imports: [
@@ -10,6 +12,7 @@ import { DatabaseModule } from './infra/database/database.module'; // 🌟 Impor
       envFilePath: '../.env',
     }),
     DatabaseModule,
+    CacheModule,
   ],
   controllers: [PaymentEventsController],
   providers: [],
