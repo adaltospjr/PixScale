@@ -32,3 +32,9 @@ CREATE TABLE transactions (
     CONSTRAINT fk_origin_account FOREIGN KEY (origin_account_id) REFERENCES accounts(id) ON DELETE RESTRICT,
     CONSTRAINT fk_destination_account FOREIGN KEY (destination_account_id) REFERENCES accounts(id) ON DELETE RESTRICT    
 );
+
+CREATE TABLE gateway_idempotency_keys (
+    idempotency_key UUID PRIMARY KEY,
+    request_hash CHAR(64) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

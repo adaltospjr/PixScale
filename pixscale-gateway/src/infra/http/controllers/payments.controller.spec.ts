@@ -1,5 +1,6 @@
 import { PaymentsController } from './payments.controller';
 import { ProcessPaymentUseCase } from '../../../application/use-cases/process-payment.use-case';
+import { StructuredLogger } from '../../observability/structured-logger';
 
 describe('PaymentsController', () => {
   it('delegates the request to the payment use case', async () => {
@@ -10,9 +11,10 @@ describe('PaymentsController', () => {
         status: 'PROCESSING',
       }),
     } as unknown as ProcessPaymentUseCase;
-    const controller = new PaymentsController(useCase);
+    const controller = new PaymentsController(useCase, { log: jest.fn() } as unknown as StructuredLogger);
     const payment = {
       idempotency_key: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      origin_account_number: '123456-7',
       destination_account_number: '998877-6',
       amount: 10,
       device_fingerprint: 'device-hash',
@@ -31,7 +33,7 @@ describe('PaymentsController', () => {
       execute: jest.fn().mockResolvedValue({ status: 'REJECTED', reason: 'EXCEEDS_DAILY_LIMIT' }),
     } as unknown as ProcessPaymentUseCase;
 
-    await expect(new PaymentsController(useCase).receivePayment({} as any)).rejects.toMatchObject({
+    await expect(new PaymentsController(useCase, { log: jest.fn() } as unknown as StructuredLogger).receivePayment({} as any)).rejects.toMatchObject({
       response: { reason: 'EXCEEDS_DAILY_LIMIT' },
     });
   });
