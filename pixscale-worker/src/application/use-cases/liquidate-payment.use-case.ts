@@ -1,5 +1,6 @@
 import { AccountRepository } from '../../domain/repository/account-repository.interface';
-import { CacheService } from '../../domain/cache/cache-service.interface'; // 🌟 Adicione o import do contrato do Redis
+import { CacheService } from '../../domain/cache/cache-service.interface';
+import { PaymentInput, LiquidationResult } from '../dto/payment-input';
 
 export class LiquidatePaymentUseCase {
   constructor(
@@ -7,11 +8,11 @@ export class LiquidatePaymentUseCase {
     private readonly cacheService: CacheService, 
   ) {}
 
-  async execute(paymentData: any) {
+  async execute(paymentData: PaymentInput): Promise<LiquidationResult> {
     console.log('[PixScale] [UseCase] Iniciando liquidação física do Pix...');
     
     const { destination_account_number, amount, idempotency_key } = paymentData;
-    const origin_account_number = paymentData.origin_account_number || '123456-7';
+    const origin_account_number = paymentData.origin_account_number;
 
     console.log(`[PixScale] [UseCase] 🛡️ Verificando chave de idempotência no Redis: ${idempotency_key}`);
 
@@ -24,7 +25,10 @@ export class LiquidatePaymentUseCase {
     }
 
     // 2. TRAVA AGRESSIVA (30s): Bloqueia cliques simultâneos rápidos por lentidão de rede
-    await this.cacheService.set(idempotency_key, 'PROCESSING', 30);
+    const lockAcquired = await this.cacheService.setIfAbsent(idempotency_key, 'PROCESSING', 30);
+    if (!lockAcquired) {
+      return { success: false, reason: 'DUPLICATE_TRANSACTION' };
+    }
     console.log('[PixScale] [UseCase] Chave travada como PROCESSING no Redis. Chamando o Postgres...');
 
     // 3. TRANSAÇÃO ACID: Roda o SQL parametrizado de débito e crédito no Postgres

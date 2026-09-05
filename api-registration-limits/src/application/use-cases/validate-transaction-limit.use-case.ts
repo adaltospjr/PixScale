@@ -19,7 +19,7 @@ export class ValidateTransactionLimitUseCase {
       return { allowed: false, reason: 'ACCOUNT_NOT_FOUND' };
     }
 
-    if (amount > accountData.dailyLimit) {
+    if (accountData.dailySpent + amount > accountData.dailyLimit) {
       return { allowed: false, reason: 'EXCEEDS_DAILY_LIMIT' };
     }
 

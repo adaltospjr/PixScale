@@ -1,9 +1,15 @@
 import Redis from 'ioredis';
 import { RedisCacheService } from './redis-cache.service';
 
+jest.mock('@nestjs/config', () => ({
+  ConfigService: class ConfigService {},
+}));
+
 const redisClientMock = {
   get: jest.fn(),
   set: jest.fn(),
+  setIfAbsent: jest.fn(),
+  ping: jest.fn(),
   quit: jest.fn(),
 };
 
@@ -17,10 +23,13 @@ describe('RedisCacheService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new RedisCacheService();
+    service = new RedisCacheService({
+      get: jest.fn((key: string) => key === 'REDIS_PORT' ? undefined : undefined),
+    } as any);
     redisClientMock.get.mockResolvedValue(null);
     redisClientMock.set.mockResolvedValue('OK');
     redisClientMock.quit.mockResolvedValue('OK');
+    redisClientMock.ping.mockResolvedValue('PONG');
     delete process.env.REDIS_PORT;
   });
 
@@ -34,6 +43,7 @@ describe('RedisCacheService', () => {
 
   it('creates the Redis client using the configured port', async () => {
     process.env.REDIS_PORT = '6380';
+    (service as any).configService.get = jest.fn((key: string) => key === 'REDIS_PORT' ? 6380 : undefined);
 
     await service.onModuleInit();
 
@@ -86,6 +96,17 @@ describe('RedisCacheService', () => {
     await service.onModuleDestroy();
 
     expect(redisClientMock.quit).toHaveBeenCalledTimes(1);
+  });
+
+  it('sets a value only when the key does not exist', async () => {
+    await service.onModuleInit();
+
+    redisClientMock.set.mockResolvedValueOnce('OK');
+    await expect(service.setIfAbsent('payment-key', 'PROCESSING', 30)).resolves.toBe(true);
+    expect(redisClientMock.set).toHaveBeenCalledWith('payment-key', 'PROCESSING', 'EX', 30, 'NX');
+
+    redisClientMock.set.mockResolvedValueOnce(null);
+    await expect(service.setIfAbsent('payment-key', 'PROCESSING', 30)).resolves.toBe(false);
   });
 
   it('propagates Redis errors', async () => {

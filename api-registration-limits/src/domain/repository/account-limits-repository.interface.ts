@@ -1,6 +1,10 @@
+export interface AccountFinancialProfile {
+  balance: number;
+  dailyLimit: number;
+  dailySpent: number;
+}
+
 export interface AccountLimitsRepository {
-  findDailyLimitAndBalance(numberAccount: string): Promise<{
-    balance: number;
-    dailyLimit: number;
-  } | null>;
+  ping(): Promise<void>;
+  findDailyLimitAndBalance(numberAccount: string): Promise<AccountFinancialProfile | null>;
 }
