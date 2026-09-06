@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsPositive,
   Matches,
+  MaxLength,
 } from 'class-validator';
 
 export class CreatePaymentDto {
@@ -13,6 +14,11 @@ export class CreatePaymentDto {
   })
   @IsNotEmpty({ message: 'A chave de idempotência é obrigatória.' })
   idempotency_key!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^\d+-\d$/)
+  origin_account_number!: string;
 
   @IsString({ message: 'O número da conta de destino deve ser um texto.' })
   @IsNotEmpty({ message: 'O número da conta de destino é obrigatório.' })
@@ -31,5 +37,6 @@ export class CreatePaymentDto {
 
   @IsString({ message: 'O fingerprint do dispositivo deve ser um texto.' })
   @IsNotEmpty({ message: 'O fingerprint do dispositivo é obrigatório.' })
+  @MaxLength(255)
   device_fingerprint!: string;
 }

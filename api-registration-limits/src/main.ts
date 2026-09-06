@@ -20,4 +20,7 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`[PixScale] [Limits API] Serviço de Limites rodando com sucesso na porta: ${port}`);
 }
-bootstrap();
+bootstrap().catch((error) => {
+  console.error('[PixScale] [Limits API] Falha fatal ao iniciar:', error);
+  process.exitCode = 1;
+});

@@ -7,28 +7,22 @@ const LiquidatePaymentUseCaseMock = LiquidatePaymentUseCase as jest.MockedClass<
 
 describe('PaymentEventsController', () => {
   let execute: jest.Mock;
-  let repository: { executeLiquidation: jest.Mock };
-  let cache: { get: jest.Mock; set: jest.Mock };
   let controller: PaymentEventsController;
 
   beforeEach(() => {
     execute = jest.fn().mockResolvedValue(undefined);
-    repository = { executeLiquidation: jest.fn() };
-    cache = { get: jest.fn(), set: jest.fn() };
     LiquidatePaymentUseCaseMock.mockImplementation(
       () => ({ execute }) as unknown as LiquidatePaymentUseCase,
     );
-    controller = new PaymentEventsController(repository as any, cache as any);
+    controller = new PaymentEventsController({ execute } as unknown as LiquidatePaymentUseCase);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  it('forwards null payloads to the use case', async () => {
-    await controller.handlePixTransaction(null, {} as any);
-
-    expect(execute).toHaveBeenCalledWith(null);
+  it('rejects null payloads', async () => {
+    await expect(controller.handlePixTransaction(null, {} as any)).rejects.toThrow('Invalid payment event payload');
   });
 
   it('parses Buffer message values', async () => {

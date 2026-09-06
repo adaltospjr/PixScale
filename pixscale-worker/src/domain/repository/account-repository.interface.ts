@@ -1,4 +1,5 @@
 export interface AccountRepository {
-  findAccountByNumber(accountNumber: string): Promise<any>;
+  ping(): Promise<void>;
+  findAccountByNumber(accountNumber: string): Promise<{ id: string; balance: number } | null>;
   executeLiquidation(originAccount: string, destinationAccount: string, amount: number, idempotencyKey: string): Promise<boolean>;
 }

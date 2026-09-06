@@ -1,29 +1,13 @@
-import { Controller, Inject } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { EventPattern, Payload, Ctx, KafkaContext } from '@nestjs/microservices';
 import { LiquidatePaymentUseCase } from '../../../application/use-cases/liquidate-payment.use-case';
-import type { AccountRepository } from '../../../domain/repository/account-repository.interface';
-import type { CacheService } from '../../../domain/cache/cache-service.interface';
 
 @Controller()
 export class PaymentEventsController {
-  private liquidatePaymentUseCase!: LiquidatePaymentUseCase;
-
-  constructor(
-    // Injeta o repositório físico do Postgres usando o Token do Clean Arch
-    @Inject('ACCOUNT_REPOSITORY')
-    private readonly accountRepository: AccountRepository,
-    @Inject('CACHE_SERVICE')
-    private readonly cacheService: CacheService,
-  ) {
-    // Instancia o caso de uso passando o repositório injetado pelo NestJS
-    this.liquidatePaymentUseCase = new LiquidatePaymentUseCase(
-      this.accountRepository,
-      this.cacheService,
-    );
-  }
+  constructor(private readonly liquidatePaymentUseCase: LiquidatePaymentUseCase) {}
 
   @EventPattern('pix-transactions')
-  async handlePixTransaction(@Payload() data: any, @Ctx() context: KafkaContext) {
+  async handlePixTransaction(@Payload() data: unknown, @Ctx() _context: KafkaContext) {
     console.log('[PixScale] [Infra] Novo evento capturado no tópico do Kafka!');
 
     const paymentData = Buffer.isBuffer(data)
@@ -31,6 +15,10 @@ export class PaymentEventsController {
       : typeof data === 'string'
         ? JSON.parse(data)
         : data;
+
+    if (!paymentData || typeof paymentData !== 'object') {
+      throw new Error('Invalid payment event payload.');
+    }
 
     console.log('[PixScale] [Infra] Payload recebido:', paymentData);
     await this.liquidatePaymentUseCase.execute(paymentData);
