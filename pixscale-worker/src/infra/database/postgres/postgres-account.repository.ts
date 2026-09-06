@@ -1,18 +1,21 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Pool } from 'pg';
+import { ConfigService } from '@nestjs/config';
 import { AccountRepository } from '../../../domain/repository/account-repository.interface';
 
 @Injectable()
 export class PostgresAccountRepository implements AccountRepository, OnModuleInit, OnModuleDestroy {
   private pool!: Pool;
 
+  constructor(private readonly configService: ConfigService) {}
+
   async onModuleInit() {
     this.pool = new Pool({
-      user: process.env.POSTGRES_USER || 'adalto',
-      host: 'localhost',
-      database: process.env.POSTGRES_DB || 'pixscale_db',
-      password: process.env.POSTGRES_PASSWORD || 'local_password123',
-      port: Number(process.env.POSTGRES_PORT) || 5432,
+      user: this.configService.get<string>('POSTGRES_USER') || 'adalto',
+      host: this.configService.get<string>('POSTGRES_HOST') || 'localhost',
+      database: this.configService.get<string>('POSTGRES_DB') || 'pixscale_db',
+      password: this.configService.get<string>('POSTGRES_PASSWORD') || 'local_password123',
+      port: this.configService.get<number>('POSTGRES_PORT') || 5432,
       max: 20,
       idleTimeoutMillis: 30000,
     });
@@ -24,10 +27,14 @@ export class PostgresAccountRepository implements AccountRepository, OnModuleIni
     await this.pool.end();
   }
 
-  async findAccountByNumber(accountNumber: string): Promise<any> {
+  async findAccountByNumber(accountNumber: string): Promise<{ id: string; balance: number } | null> {
     const query = 'SELECT * FROM accounts WHERE number_account = $1';
     const result = await this.pool.query(query, [accountNumber]);
-    return result.rows[0] || null;
+    return result.rows[0] ? { id: result.rows[0].id, balance: Number(result.rows[0].balance) } : null;
+  }
+
+  async ping(): Promise<void> {
+    await this.pool.query('SELECT 1');
   }
 
   async executeLiquidation(

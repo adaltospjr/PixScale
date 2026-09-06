@@ -1,4 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { CacheService } from '../../../domain/cache/cache-service.interface';
 
@@ -6,11 +7,14 @@ import { CacheService } from '../../../domain/cache/cache-service.interface';
 export class RedisCacheService implements CacheService, OnModuleInit, OnModuleDestroy {
   private redisClient!: Redis;
 
+  constructor(private readonly configService: ConfigService) {}
+
   async onModuleInit() {
-    const redisPort = Number(process.env.REDIS_PORT) || 6379;
+    const redisPort = this.configService.get<number>('REDIS_PORT') || 6379;
+    const redisHost = this.configService.get<string>('REDIS_HOST') || 'localhost';
     
     this.redisClient = new Redis({
-      host: 'localhost',
+      host: redisHost,
       port: redisPort,
       maxRetriesPerRequest: 3,
     });
@@ -26,8 +30,17 @@ export class RedisCacheService implements CacheService, OnModuleInit, OnModuleDe
     return await this.redisClient.get(key);
   }
 
+  async ping(): Promise<void> {
+    await this.redisClient.ping();
+  }
+
   async set(key: string, value: string, ttlSeconds: number): Promise<void> {
     // Salva a chave com um tempo de expiração (TTL) para não lotar a memória RAM do servidor para sempre
     await this.redisClient.set(key, value, 'EX', ttlSeconds);
+  }
+
+  async setIfAbsent(key: string, value: string, ttlSeconds: number): Promise<boolean> {
+    const result = await this.redisClient.set(key, value, 'EX', ttlSeconds, 'NX');
+    return result === 'OK';
   }
 }

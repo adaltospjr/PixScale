@@ -1,14 +1,20 @@
 import { PaymentsController } from './payments.controller';
-import type { KafkaMessageBrokerAdapter } from '../../messaging/kafka-message-broker.adapter';
+import { ProcessPaymentUseCase } from '../../../application/use-cases/process-payment.use-case';
+import { StructuredLogger } from '../../observability/structured-logger';
 
 describe('PaymentsController', () => {
   it('delegates the request to the payment use case', async () => {
-    const adapter = {
-      publish: jest.fn().mockResolvedValue(undefined),
-    } as unknown as KafkaMessageBrokerAdapter;
-    const controller = new PaymentsController(adapter);
+    const useCase = {
+      execute: jest.fn().mockResolvedValue({
+        message: 'Payment received successfully and sent to processing queue.',
+        idempotency_key: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        status: 'PROCESSING',
+      }),
+    } as unknown as ProcessPaymentUseCase;
+    const controller = new PaymentsController(useCase, { log: jest.fn() } as unknown as StructuredLogger);
     const payment = {
       idempotency_key: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      origin_account_number: '123456-7',
       destination_account_number: '998877-6',
       amount: 10,
       device_fingerprint: 'device-hash',
@@ -19,6 +25,16 @@ describe('PaymentsController', () => {
       idempotency_key: payment.idempotency_key,
       status: 'PROCESSING',
     });
-    expect(adapter.publish).toHaveBeenCalledWith('pix-transactions', payment.idempotency_key, payment);
+    expect(useCase.execute).toHaveBeenCalledWith(payment);
+  });
+
+  it('translates a rejected payment into a bad request', async () => {
+    const useCase = {
+      execute: jest.fn().mockResolvedValue({ status: 'REJECTED', reason: 'EXCEEDS_DAILY_LIMIT' }),
+    } as unknown as ProcessPaymentUseCase;
+
+    await expect(new PaymentsController(useCase, { log: jest.fn() } as unknown as StructuredLogger).receivePayment({} as any)).rejects.toMatchObject({
+      response: { reason: 'EXCEEDS_DAILY_LIMIT' },
+    });
   });
 });

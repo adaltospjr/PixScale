@@ -10,13 +10,16 @@ import { KafkaMessageBrokerAdapter } from './kafka-message-broker.adapter';
         name: 'KAFKA_SERVICE',
         imports: [ConfigModule],
         useFactory: async (configService: ConfigService) => {
-          const kafkaPort = configService.get<string>('KAFKA_PORT') || '9092';
+          const brokers = (
+            configService.get<string>('KAFKA_BROKERS') ||
+            `localhost:${configService.get<string>('KAFKA_PORT') || '9092'}`
+          ).split(',');
           return {
             transport: Transport.KAFKA,
             options: {
               client: {
                 clientId: 'pixscale-gateway',
-                brokers: [`localhost:${kafkaPort}`],
+                brokers,
               },
               consumer: {
                 groupId: 'pix-gateway-consumer',

@@ -16,7 +16,7 @@ describe('PostgresAccountRepository', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    repository = new PostgresAccountRepository();
+    repository = new PostgresAccountRepository({ get: jest.fn() } as any);
     client = { query: jest.fn(), release: jest.fn() };
     poolMock.connect.mockResolvedValue(client);
   });
@@ -30,9 +30,9 @@ describe('PostgresAccountRepository', () => {
 
   it('finds an account by number', async () => {
     await repository.onModuleInit();
-    poolMock.query.mockResolvedValueOnce({ rows: [{ id: 'account-id' }] });
+    poolMock.query.mockResolvedValueOnce({ rows: [{ id: 'account-id', balance: '100.00' }] });
 
-    await expect(repository.findAccountByNumber('123456-7')).resolves.toEqual({ id: 'account-id' });
+    await expect(repository.findAccountByNumber('123456-7')).resolves.toEqual({ id: 'account-id', balance: 100 });
     expect(poolMock.query).toHaveBeenCalledWith(
       'SELECT * FROM accounts WHERE number_account = $1',
       ['123456-7'],

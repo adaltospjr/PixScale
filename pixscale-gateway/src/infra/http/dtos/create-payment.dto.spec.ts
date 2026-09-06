@@ -10,6 +10,7 @@ describe('CreatePaymentDto', () => {
   it('accepts a valid payment', async () => {
     const errors = await validationErrors({
       idempotency_key: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      origin_account_number: '123456-7',
       destination_account_number: '998877-6',
       amount: 10.25,
       device_fingerprint: 'device-hash',
