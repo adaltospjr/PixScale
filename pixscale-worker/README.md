@@ -1,98 +1,41 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# ⚡ PixScale - Distributed Core Banking Platform
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+O **PixScale** é um ecossistema de microsserviços financeiros de alta performance e escala, projetado sob os conceitos de **Clean Architecture** e **Event-Driven Architecture** para orquestrar e liquidar transações Pix com resiliência de nível bancário.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Este repositório consolida a fundação técnica do ecossistema, demonstrando o uso avançado de mensageria assíncrona, barreiras de proteção síncronas, segurança criptográfica e isolamento de concorrência nativo no banco de dados.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🏛️ Topologia do Ecossistema (Monorepo)
 
-## Project setup
+*   **`pixscale-gateway`:** Porta de entrada síncrona. Valida a segurança corporativa (JWT), gerencia o estado do Circuit Breaker, persiste chaves de idempotência histórica com checagem de hash de payload e despacha eventos legítimos para o barramento.
+*   **`api-registration-limits`:** Engine síncrona corporativa. Avalia as regras de negócio de limite antes do processamento, calculando dinamicamente no Postgres a soma acumulada de gastos do cliente no dia corrente (`SUM` + `FILTER`).
+*   **`pixscale-worker`:** Motor assíncrono transacional. Consome as mensagens do Kafka e opera a liquidação física de saldo e a trava de concorrência em um único bloco atômico no banco de dados.
 
-```bash
-$ npm install
-```
+---
 
-## Compile and run the project
+## 🚀 Engenharia de Resiliência & Padrões de Produção
 
-```bash
-# development
-$ npm run start
+### 1. Resiliência de Malha e Tolerância a Falhas
+*   **Circuit Breaker Formal:** Implementado nas chamadas HTTP entre o Gateway e a API de Limites. Gerencia os estados `CLOSED`, `OPEN` e `HALF_OPEN` com cooldown configurável, evitando o travamento de threads por efeito dominó se o microsserviço de limites oscilar.
+*   **Health Checks Dinâmicos (`/health/live` e `/health/ready`):** Monitoramento ativo de prontidão. A rota `ready` executa checagens físicas reais (`ping()`) contra as dependências do microsserviço (PostgreSQL, barramentos e APIs de apoio), devolvendo `503 Service Unavailable` em caso de indisponibilidade de infraestrutura.
 
-# watch mode
-$ npm run start:dev
+### 2. Idempotência Relacional Atômica (PostgreSQL State Machine)
+*   **Controle de Concorrência via Restrição Única:** O `pixscale-worker` delega a segurança contra reprocessamento e cliques duplos diretamente para o motor do **PostgreSQL**. 
+*   **Mecânica `ON CONFLICT`:** Ao consumir um evento, a transação inicia tentando registrar a chave na tabela de transações (`INSERT ... ON CONFLICT DO NOTHING`). Se a restrição única do índice for violada, o banco aborta a inserção instantaneamente (`rowCount === 0`). O repositório intercepta o evento, efetua o `ROLLBACK` e devolve o status `DUPLICATE`, blindando as contas de débito e crédito contra movimentações duplicadas em cenários de alta concorrência.
+*   **Garantia ACID Nativa:** Todas as transferências operam em blocos isolados (`BEGIN`, `COMMIT`, `ROLLBACK`) usando SQL puro parametrizado (`$1`, `$2`), eliminando o overhead de ORMs e prevenindo vulnerabilidades de SQL Injection.
 
-# production mode
-$ npm run start:prod
-```
+### 3. Segurança e Autenticação Bancária
+*   **Autenticação JWT Criptográfica Nativa (`JwtGuard`):** Validação manual de tokens assinados em algoritmo `HS256` utilizando estritamente o módulo `node:crypto`. O guard verifica de forma rígida as claims obrigatórias (`sub`, `exp`, `iss`, `aud`) e previne ataques de temporização (*timing attacks*) por meio da função de comparação em tempo constante `timingSafeEqual`.
 
-## Run tests
+### 4. Observabilidade e Auditoria
+*   **Módulo StructuredLogger:** Emissão de logs padronizados em estruturas JSON nativas para a saída padrão (stdout), facilitando o parse, agregação e indexação automatizada em ferramentas de APM de mercado (como Datadog, Splunk ou ELK Stack).
 
-```bash
-# unit tests
-$ npm run test
+---
 
-# e2e tests
-$ npm run test:e2e
+## 🛠️ Stack Tecnológica
 
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+*   **Runtime & Framework:** Node.js, NestJS, TypeScript
+*   **Mensageria:** Apache Kafka (KRaft Single-Broker local no Docker)
+*   **Banco de Dados:** PostgreSQL (Persistência e Idempotência Relacional ACID)
+*   **Segurança:** JWT (HMAC-SHA256 nativo via `node:crypto`)
